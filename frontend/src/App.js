@@ -18,28 +18,32 @@ const emojiMap = {
 
 function App() {
   const webcamRef = useRef(null);
+  const canvasRef = useRef(null);
+  const isSending = useRef(false);
 
   const [gesture, setGesture] = useState("neutral");
+  const [objects, setObjects] = useState([]);
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
       sendFrame();
-    }, 500); // 🔥 adjust speed
+    }, 300); // 🔥 faster + smoother
 
     return () => clearInterval(interval);
   }, []);
 
-  // 🔥 SEND FRAME TO BACKEND
   const sendFrame = async () => {
+    if (isSending.current) return;
+    isSending.current = true;
+
     try {
-      if (!webcamRef.current) return;
+      const webcam = webcamRef.current;
+      if (!webcam) return;
 
-      const screenshot = webcamRef.current.getScreenshot();
-
+      const screenshot = webcam.getScreenshot();
       if (!screenshot) return;
 
-      // base64 → blob
       const blob = await fetch(screenshot).then((res) => res.blob());
 
       const formData = new FormData();
@@ -50,32 +54,72 @@ function App() {
         body: formData,
       });
 
+      if (!res.ok) throw new Error("API error");
+
       const data = await res.json();
 
       setGesture(data.gesture);
+      setObjects(data.objects || []);
       setConnected(true);
+
+      drawBoxes(data.objects || []);
     } catch (err) {
-      console.log("API error");
+      console.log("API error:", err);
       setConnected(false);
+    } finally {
+      isSending.current = false;
     }
+  };
+
+  // 🔥 DRAW BOUNDING BOXES
+  const drawBoxes = (objects) => {
+    const canvas = canvasRef.current;
+    const video = webcamRef.current?.video;
+
+    if (!canvas || !video) return;
+
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    objects.forEach((obj) => {
+      const [x1, y1, x2, y2] = obj.box;
+
+      ctx.strokeStyle = "#00FF00";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+
+      ctx.fillStyle = "#00FF00";
+      ctx.font = "16px Arial";
+      ctx.fillText(obj.label, x1, y1 - 5);
+    });
   };
 
   return (
     <div className="h-screen bg-gradient-to-br from-black via-gray-900 to-gray-800 flex items-center justify-center text-white">
+      {" "}
       <div className="flex gap-10 items-center">
-        {/* 🎥 Webcam */}
-        <div className="rounded-3xl overflow-hidden border border-white/20 shadow-2xl">
+        {/* 🎥 Webcam + Canvas */}
+        <div className="relative rounded-3xl overflow-hidden border border-white/20 shadow-2xl">
           <Webcam
             ref={webcamRef}
             audio={false}
             screenshotFormat="image/jpeg"
             className="w-[400px] h-[300px] object-cover"
           />
+
+          <canvas
+            ref={canvasRef}
+            className="absolute top-0 left-0 w-[400px] h-[300px]"
+          />
         </div>
 
-        {/* 🤖 UI Panel */}
+        {/* 🤖 UI */}
         <div className="w-[350px] p-8 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl text-center">
-          <h1 className="text-2xl font-bold mb-4">✋ Gesture AI</h1>
+          <h1 className="text-2xl font-bold mb-4">🤖 Gesture + Object AI</h1>
 
           {/* Status */}
           <div className="flex items-center justify-center gap-2 mb-6">
@@ -87,18 +131,34 @@ function App() {
             </span>
           </div>
 
-          {/* Gesture Display */}
-          <div className="bg-black/40 rounded-2xl p-6 shadow-inner">
-            <div className="text-6xl mb-3 animate-bounce">
-              {emojiMap[gesture] || "❓"}
-            </div>
+          {/* Gesture */}
+          <div className="bg-black/40 rounded-2xl p-6 shadow-inner mb-4">
+            <div className="text-6xl mb-3">{emojiMap[gesture] || "❓"}</div>
 
-            <h2 className="text-2xl font-bold text-green-400 capitalize">
+            <h2 className="text-xl font-bold text-green-400 capitalize">
               {gesture}
             </h2>
           </div>
 
-          <p className="mt-6 text-xs text-gray-400">Real-time AI detection</p>
+          {/* Objects */}
+          <div className="bg-black/40 rounded-2xl p-4 shadow-inner">
+            <h3 className="text-sm text-gray-400 mb-2">Detected Objects</h3>
+
+            {objects.length > 0 ? (
+              <div className="flex flex-wrap gap-2 justify-center">
+                {objects.map((obj, index) => (
+                  <span
+                    key={index}
+                    className="px-3 py-1 bg-blue-500/20 border border-blue-400 text-blue-300 rounded-full text-xs"
+                  >
+                    {obj.label}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-xs">No objects</p>
+            )}
+          </div>
         </div>
       </div>
     </div>
