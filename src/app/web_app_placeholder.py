@@ -1,20 +1,20 @@
-"""
-Streamlit / CLI application layer for RT-Gesture3D.
 
-Modes:
-- CLI:
-    python src/app/web_app_placeholder.py
-  → Directly launches the OpenCV live gesture demo (no UI changes).
+# Streamlit / CLI application layer for RT-Gesture3D.
 
-- Streamlit:
-    streamlit run src/app/web_app_placeholder.py
-  → Polished dashboard UI:
-      - Dashboard tab (overview + launch button)
-      - Gesture Library tab (avatars + ids)
-      - Docs tab (architecture + viva points)
+# Modes:
+# - CLI:
+#     python src/app/web_app_placeholder.py
+#   → Directly launches the OpenCV live gesture demo (no UI changes).
 
-We do NOT change any detection logic.
-"""
+# - Streamlit:
+#     streamlit run src/app/web_app_placeholder.py
+#   → Polished dashboard UI:
+#       - Dashboard tab (overview + launch button)
+#       - Gesture Library tab (avatars + ids)
+#       - Docs tab (architecture + viva points)
+
+# We do NOT change any detection logic.
+
 
 from pathlib import Path
 import sys

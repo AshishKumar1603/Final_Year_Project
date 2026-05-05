@@ -18,22 +18,16 @@ hands = mp_hands.Hands(
 )
 
 cap = cv2.VideoCapture(0)
-
 gesture = input("Enter gesture name: ").strip().lower().replace(" ", "_")
-
 file_path = "datasets/gestures.csv"
-
 last_capture_time = 0
 capture_delay = 0.4
-
 with open(file_path, "a", newline="") as f:
     writer = csv.writer(f)
-
     while True:
         ret, frame = cap.read()
         if not ret:
             continue
-
         frame = cv2.flip(frame, 1)
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         result = hands.process(rgb)
@@ -46,16 +40,14 @@ with open(file_path, "a", newline="") as f:
                 if current_time - last_capture_time > capture_delay:
                     row = []
 
-                    # 🔥 NORMALIZATION
+                    #  NORMALIZATION
                     base_x = hand_landmarks.landmark[0].x
                     base_y = hand_landmarks.landmark[0].y
-
-                    # ✅ (1) normalized coordinates
+                    #  normalized coordinates
                     for lm in hand_landmarks.landmark:
                         row.append(lm.x - base_x)
                         row.append(lm.y - base_y)
-
-                    # 🔥 (2) distance features (IMPORTANT)
+                    #  distance features 
                     for lm in hand_landmarks.landmark:
                         dist = math.sqrt((lm.x - base_x)**2 + (lm.y - base_y)**2)
                         row.append(dist)
